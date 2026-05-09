@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日宋词 · 赤兔画廊</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ink: #2c2c2c;
+    --ink-light: #666;
+    --paper: #f5f0e8;
+    --paper-dark: #e8e0d0;
+    --accent: #8b4513;
+    --accent-light: #a0522d;
+    --sidebar-w: 320px;
+  }
+
+  body {
+    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ===== Layout ===== */
+  .app {
+    display: flex;
+    height: 100vh;
+  }
+
+  /* ===== Header Bar ===== */
+  .header-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: linear-gradient(135deg, #2c2c2c 0%, #4a3728 100%);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    z-index: 100;
+    gap: 12px;
+  }
+  .header-bar .logo {
+    font-family: 'Noto Serif SC', serif;
+    font-weight: 900;
+    font-size: 20px;
+    color: #d4a574;
+    letter-spacing: 2px;
+  }
+  .header-bar .subtitle {
+    font-size: 13px;
+    color: rgba(255,255,255,.5);
+    font-weight: 300;
+    margin-left: auto;
+  }
+  .header-bar .count-badge {
+    background: rgba(212,165,116,.15);
+    color: #d4a574;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    border: 1px solid rgba(212,165,116,.3);
+  }
+
+  /* ===== Sidebar ===== */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: #fff;
+    border-right: 1px solid var(--paper-dark);
+    overflow-y: auto;
+    padding-top: 56px;
+    height: 100vh;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+
+  .poem-item {
+    padding: 16px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid #f5f0e8;
+    transition: all .2s;
+    position: relative;
+  }
+  .poem-item:hover {
+    background: #faf6ee;
+  }
+  .poem-item.active {
+    background: var(--paper);
+    border-left: 3px solid var(--accent);
+  }
+  .poem-item.active::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid var(--paper);
+  }
+  .poem-item .poem-date {
+    font-size: 11px;
+    color: #bbb;
+    margin-bottom: 4px;
+  }
+  .poem-item .poem-name {
+    font-family: 'Noto Serif SC', serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .poem-item .poem-author {
+    font-size: 12px;
+    color: var(--ink-light);
+    margin-top: 2px;
+  }
+  .poem-item .poem-badge {
+    display: inline-block;
+    font-size: 10px;
+    background: var(--accent);
+    color: #fff;
+    padding: 1px 8px;
+    border-radius: 8px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ===== Main Content ===== */
+  .main {
+    flex: 1;
+    padding-top: 56px;
+    overflow-y: auto;
+    height: 100vh;
+  }
+  .main::-webkit-scrollbar { width: 6px; }
+  .main::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+
+  .content-wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 40px 48px 80px;
+  }
+
+  /* Empty State */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 56px);
+    color: #ccc;
+    text-align: center;
+  }
+  .empty-state .empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: .3;
+  }
+  .empty-state h2 {
+    font-family: 'Noto Serif SC', serif;
+    font-weight: 400;
+    color: #bbb;
+    font-size: 18px;
+  }
+
+  /* Poem Detail */
+  .poem-detail { display: none; }
+  .poem-detail.active { display: block; }
+
+  .poem-header {
+    text-align: center;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--paper-dark);
+  }
+  .poem-header .ci-title {
+    font-family: 'Noto Serif SC', serif;
+    font-weight: 900;
+    font-size: 28px;
+    color: var(--ink);
+    letter-spacing: 1px;
+  }
+  .poem-header .ci-meta {
+    font-size: 14px;
+    color: var(--ink-light);
+    margin-top: 8px;
+  }
+  .poem-header .ci-date {
+    font-size: 12px;
+    color: #bbb;
+    margin-top: 4px;
+  }
+
+  .commentary {
+    background: rgba(139,69,19,.04);
+    border-left: 3px solid var(--accent-light);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #555;
+    border-radius: 0 6px 6px 0;
+  }
+  .commentary-label {
+    font-family: 'Noto Serif SC', serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--accent);
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+  }
+
+  .poem-body {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 17px;
+    line-height: 2.2;
+    text-align: center;
+    color: var(--ink);
+    margin-bottom: 32px;
+  }
+  .poem-body .stanza-break {
+    height: 12px;
+  }
+  .poem-body .preface {
+    font-size: 13px;
+    color: #999;
+    line-height: 1.8;
+  }
+
+  /* Image */
+  .image-section {
+    text-align: center;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--paper-dark);
+  }
+  .image-section .img-label {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 12px;
+    color: var(--ink-light);
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+  }
+  .image-section img {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    border: 1px solid var(--paper-dark);
+  }
+  .image-section .no-img {
+    padding: 40px;
+    background: #fafafa;
+    border-radius: 8px;
+    color: #ccc;
+    font-size: 13px;
+    border: 1px dashed #e0e0e0;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .sidebar.mobile-show {
+      display: block;
+      position: fixed;
+      width: 100%;
+      z-index: 50;
+    }
+    .content-wrap { padding: 24px 20px; }
+    .poem-header .ci-title { font-size: 22px; }
+    .poem-body { font-size: 15px; }
+    .menu-toggle {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: rgba(255,255,255,.1);
+      border: none;
+      border-radius: 6px;
+      color: #d4a574;
+      font-size: 18px;
+      cursor: pointer;
+    }
+  }
+  .menu-toggle { display: none; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header-bar">
+    <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">☰</button>
+    <span class="logo">· 每日宋词 ·</span>
+    <span class="subtitle">赤兔画廊</span>
+    <span class="count-badge" id="poemCount">0 首</span>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div id="poemList"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="content-wrap">
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">📜</div>
+        <h2>每日一首宋词，品味千年风雅</h2>
+      </div>
+
+      <!-- Poem Detail -->
+      <div class="poem-detail" id="poemDetail"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let poems = [];
+let currentId = null;
+
+async function loadData() {
+  try {
+    const resp = await fetch('./data.json?_t=' + Date.now());
+    const data = await resp.json();
+    poems = data.poems || [];
+    renderSidebar();
+    document.getElementById('poemCount').textContent = poems.length + ' 首';
+
+    if (poems.length > 0) {
+      document.getElementById('emptyState').style.display = 'none';
+      // Auto-select first or last
+      selectPoem(poems[poems.length - 1].id);
+    }
+  } catch(e) {
+    console.log('Data not ready yet');
+  }
+}
+
+function renderSidebar() {
+  const list = document.getElementById('poemList');
+  list.innerHTML = poems.map(p => `
+    <div class="poem-item ${p.id === currentId ? 'active' : ''}"
+         onclick="selectPoem(${p.id})" data-id="${p.id}">
+      <div class="poem-date">${p.date || ''}</div>
+      <div class="poem-name">
+        ${p.title}
+        ${p.image ? '<span class="poem-badge">🖼</span>' : ''}
+      </div>
+      <div class="poem-author">${p.dynasty} · ${p.author}</div>
+    </div>
+  `).join('');
+}
+
+function selectPoem(id) {
+  currentId = id;
+  const poem = poems.find(p => p.id === id);
+  if (!poem) return;
+
+  renderSidebar();
+
+  const detail = document.getElementById('poemDetail');
+  detail.className = 'poem-detail active';
+  document.getElementById('emptyState').style.display = 'none';
+
+  // Close sidebar on mobile
+  const sidebar = document.getElementById('sidebar');
+  if (window.innerWidth <= 768) sidebar.classList.remove('mobile-show');
+
+  // Build poem body
+  // Lines before the first empty line are the preface/小序
+  // Everything after is the poem proper
+  let bodyHtml = '';
+  let passedFirstBreak = false;
+  poem.lines.forEach(line => {
+    if (line === '') {
+      bodyHtml += '<div class="stanza-break"></div>';
+      passedFirstBreak = true;
+    } else if (!passedFirstBreak) {
+      // Before first stanza break = preface
+      bodyHtml += `<div class="preface">${line}</div>`;
+    } else {
+      // Regular poem line
+      bodyHtml += `<div>${line}</div>`;
+    }
+  });
+
+  // Image
+  let imgHtml = '';
+  if (poem.image) {
+    imgHtml = `
+      <div class="image-section">
+        <div class="img-label">— 🖼 水墨配图 —</div>
+        <img src="${poem.image}" alt="${poem.title}" loading="lazy">
+      </div>
+    `;
+  } else {
+    imgHtml = `
+      <div class="image-section">
+        <div class="img-label">— 🖼 水墨配图 —</div>
+        <div class="no-img">暂无配图 · 每日更新中</div>
+      </div>
+    `;
+  }
+
+  detail.innerHTML = `
+    <div class="poem-header">
+      <div class="ci-title">${poem.title}</div>
+      <div class="ci-meta">${poem.dynasty} · ${poem.author}</div>
+      <div class="ci-date">${poem.date || ''}</div>
+    </div>
+    ${poem.commentary ? `
+      <div class="commentary">
+        <div class="commentary-label">品 鉴</div>
+        ${poem.commentary}
+      </div>
+    ` : ''}
+    <div class="poem-body">${bodyHtml}</div>
+    ${imgHtml}
+  `;
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('mobile-show');
+}
+
+// Load on init
+loadData();
+</script>
+</body>
+</html>
